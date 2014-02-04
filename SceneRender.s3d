@@ -1,0 +1,731 @@
+/* Include s3d symbols */
+#include <Script3d.h>
+//#include <Camera.s3d.h>
+
+/* Set global scene parameters */
+SET SCENE_FOV  = 60;
+SET SCENE_NEAR = 0.5;
+SET SCENE_FAR  = 1000;
+
+var cave = 1;
+// TODO: put your global variables here
+var ChickenSound = CVmVRAWav();
+var audioWAV1 = CVmVRAWav();
+var CowSound = CVmVRAWav();
+var GunSound = CVmVRAWav();
+var CanHit = CVmVRAWav();
+
+var Intro = CVmVRAWav();
+var Shoot2nd = CVmVRAWav();
+var Shoot3rd = CVmVRAWav();
+
+var ChallengeStart = CVmVRAWav();
+var ChallengeOver = CVmVRAWav();
+
+var LowHits = CVmVRAWav();
+var MedHits = CVmVRAWav();
+var HighHits = CVmVRAWav();
+
+var Accuracy = CVmVRAWav();
+var Poor = CVmVRAWav();
+var Good = CVmVRAWav();
+var Excellent = CVmVRAWav();
+
+var FinalScoreIntro = CVmVRAWav();
+var sixOutOf10 = CVmVRAWav();
+var sevenOutOf10 = CVmVRAWav();
+var eightOutOf10 = CVmVRAWav();
+var nineOutOf10 = CVmVRAWav();
+var tenOutOf10 = CVmVRAWav();
+
+var Goodbye = CVmVRAWav();
+
+var banjo = CVmVRAWav();
+
+var playSound = Event();
+var output_text = "";
+var Angle;
+
+/* Light globals */
+var Light1;
+var Light2;
+var Light3;
+var Light4;
+var Light5;
+var Light6;
+var PosL = [0.0, 1.0, -5.0];	// default light position
+var PosL2 = [0.0, 1.0, -20.0];
+var PosL3 = [-7.5, 2.0, -18.0];
+var PosL4 = [-3, 2.0, -26.5];
+var PosL5 = [3.5, 2.0, -26.7];
+var PosL6 = [6.5, 2.0, -21.5];
+
+var SceneMesh;
+var SceneObj;
+
+var GunPos = Vector(3);
+var GunOri = Vector(3);
+var CrosshairPos = Vector(3);
+var CrosshairDir = Vector(3);
+
+var CanMesh;
+var CanObj1;
+var CanObj2;
+var CanObj3;
+var CanObj4;
+var CanObj5;
+var CanObj6;
+var CanObj7;
+var CanObj8;
+
+var CanPos1 = [-8.5, 0.0, -15.0];
+var CanPos2 = [-7.5, 0.0, -21.0];
+var CanPos3 = [-4.5, 0.0, -24.0];
+var CanPos4 = [-1.0, 0.0, -29.5];
+var CanPos5 = [+2.0, 0.0, -26.5];
+var CanPos6 = [+5.2, 0.0, -26.5];
+var CanPos7 = [+6.0, 0.0, -22.5];
+var CanPos8 = [+5.8, 0.0, -17.5];
+
+var GunMesh;
+var GunObj;
+
+var CrosshairMesh;
+var CrosshairObj;
+
+var TracerMesh;
+var TracerObj;
+
+var targetList;
+var poslist;
+
+var shotCounter = 0;
+var hitCounter = 0;
+
+var finalShotCount = 0;
+var finalHitCount = 0;
+var finalAccuracy = 0;
+
+var barrelLoaded = true;
+var bulletTraceTimerCounter = 10;
+//how many frames should the trace last for
+var bulletTraceTimerMax = 10;
+var repSound = 3000;
+
+var visableCanID=1;
+var randVisableCanID;
+var DefaultDir = [0,0,-1];
+var DefaultRot = [0,0,0];
+
+var waitingToAnnounce = true;
+var stageID = 1;
+var updateRotation = true;
+
+var oldRotate1 = 0;
+var oldRotate2 = 0;
+
+/* Function declarations */
+function CameraMoveMouse();
+function DrawGrid(col, size);
+function updateGunPos();
+function triggerCheck();
+function shoot();
+function DrawCan();
+function ResetHitShotCounters();
+function Announce();
+
+function onDownload(){
+}
+function OnInit(params){
+	setTimeStep(1);
+	setLocalDir();
+	 outputln("Environment is type " + str(cave));
+		/* Load Sounds 	   */
+	outputln("Loading Sounds...");
+	audioWAV1.Load("sceneData\\animals1.wav");
+    audioWAV1.SetVolume(0.7);
+    
+    ChickenSound.Load("sceneData\\chicken2.wav");
+	ChickenSound.SetVolume(0.85);
+	ChickenSound.setPosition(-300,-60,200);
+	
+	CowSound.Load("sceneData\\moo.wav");
+	CowSound.SetVolume(0.85);
+	CowSound.SetPosition(100,-25,200);
+	
+	GunSound.Load("sceneData\\Gunshot.wav");
+	GunSound.SetVolume(1.0);	
+	
+	CanHit.Load("sceneData\\CanHit.wav");
+	CanHit.SetVolume(2.0);
+
+	banjo.Load("Voiceover\\wav\\banjo.wav");
+	banjo.setPosition(-11.7,0.7,-28);
+
+	Intro.Load("Voiceover\\wav\\Intro.wav");
+	Intro.setPosition(-11.7,0.7,-28);	
+	Shoot2nd.Load("Voiceover\\wav\\Shoot2nd.wav");
+	Shoot2nd.setPosition(-11.7,0.7,-28);
+	Shoot3rd.Load("Voiceover\\wav\\Shoot3rd.wav");
+	Shoot3rd.setPosition(-11.7,0.7,-28);
+
+	ChallengeStart.Load("Voiceover\\wav\\ChallengeStart.wav");
+	ChallengeStart.setPosition(-11.7,0.7,-28);
+	ChallengeOver.Load("Voiceover\\wav\\ChallengeOver.wav");
+	ChallengeOver.setPosition(-11.7,0.7,-28);
+
+	LowHits.Load("Voiceover\\wav\\0-9.wav");
+	LowHits.setPosition(-11.7,0.7,-28);
+	MedHits.Load("Voiceover\\wav\\10-19.wav");
+	MedHits.setPosition(-11.7,0.7,-28);
+	HighHits.Load("Voiceover\\wav\\20+.wav");
+	HighHits.setPosition(-11.7,0.7,-28);
+
+	Accuracy.Load("Voiceover\\wav\\Accuracy.wav");
+	Accuracy.setPosition(-11.7,0.7,-28);
+	Poor.Load("Voiceover\\wav\\Poor.wav");
+	Poor.setPosition(-11.7,0.7,-28);
+	Good.Load("Voiceover\\wav\\Good.wav");
+	Good.setPosition(-11.7,0.7,-28);
+	Excellent.Load("Voiceover\\wav\\Excellent.wav");
+	Excellent.setPosition(-11.7,0.7,-28);
+
+	FinalScoreIntro.Load("Voiceover\\wav\\FinalScoreIntro.wav");
+	FinalScoreIntro.setPosition(-11.7,0.7,-28);
+	sixOutOf10.Load("Voiceover\\wav\\6OutOf10.wav");
+	sixOutOf10.setPosition(-11.7,0.7,-28);
+	sevenOutOf10.Load("Voiceover\\wav\\7OutOf10.wav");
+	sevenOutOf10.setPosition(-11.7,0.7,-28);
+	eightOutOf10.Load("Voiceover\\wav\\8OutOf10.wav");
+	eightOutOf10.setPosition(-11.7,0.7,-28);
+	nineOutOf10.Load("Voiceover\\wav\\9OutOf10.wav");
+	nineOutOf10.setPosition(-11.7,0.7,-28);
+	tenOutOf10.Load("Voiceover\\wav\\10OutOf10.wav");
+	tenOutOf10.setPosition(-11.7,0.7,-28);
+
+	Goodbye.Load("Voiceover\\wav\\Goodbye.wav");
+	Goodbye.setPosition(-11.7,0.7,-28);
+
+	if(cave>=1)
+		SceneSetParam(VR_HEADTRACKER,1);
+	
+	/* initialize light */
+	outputln("Init lights...");
+Light1 = CVmLight();
+	Light1.SetPosition(PosL);
+	Light1.SetDiffuse(1, 1, 1);
+	Light1.Enable();	
+	
+	Light2 = CVmLight();
+	Light2.SetPosition(PosL2);
+	Light2.SetAmbient(1, 1, 1);
+	Light2.Enable();
+	
+	Light3 = CVmLight();
+	Light3.SetPosition(PosL3);
+	Light3.SetAmbient(1, 1, 1);
+	Light3.Enable();
+	
+	Light4 = CVmLight();
+	Light4.SetPosition(PosL4);
+	Light4.SetAmbient(1, 1, 1);
+	Light4.Enable();
+	
+	Light5 = CVmLight();
+	Light5.SetPosition(PosL5);
+	Light5.SetAmbient(1, 1, 1);
+	Light5.Enable();
+	
+	Light6 = CVmLight();
+	Light6.SetPosition(PosL6);
+	Light6.SetAmbient(1, 1, 1);
+	Light6.Enable();
+	/*Scene init*/
+	output("Init Scene...");
+	SceneMesh = CVmNewMesh("sceneData\\BarnNew.aam");
+ 	SceneObj  = CVmObj();
+    SceneObj.LinkToMesh(SceneMesh); 
+    
+    //Can Init
+    CanMesh = CVmNewMesh("sceneData\\CanNew.aam");
+    
+	CanObj1 = CVmObj();
+	CanObj1.LinkToMesh(CanMesh);
+	CanObj1.setPosition(CanPos1);
+	CanObj2 = CVmObj();
+	CanObj2.LinkToMesh(CanMesh);
+	CanObj2.setPosition(CanPos2);
+	CanObj3 = CVmObj();
+	CanObj3.LinkToMesh(CanMesh);
+	CanObj3.setPosition(CanPos3);
+	CanObj4 = CVmObj();
+	CanObj4.LinkToMesh(CanMesh);
+	CanObj4.setPosition(CanPos4);
+	CanObj5 = CVmObj();
+	CanObj5.LinkToMesh(CanMesh);
+	CanObj5.setPosition(CanPos5);
+	CanObj6 = CVmObj();
+	CanObj6.LinkToMesh(CanMesh);
+	CanObj6.setPosition(CanPos6);
+	CanObj7 = CVmObj();
+	CanObj7.LinkToMesh(CanMesh);
+	CanObj7.setPosition(CanPos7);
+	CanObj8 = CVmObj();
+	CanObj8.LinkToMesh(CanMesh);
+	CanObj8.setPosition(CanPos8);
+	
+	//Rifle Init
+	GunMesh = CVmNewMesh("sceneData\\RifleNew.aam");
+	GunObj = CVmObj();
+	GunObj.LinkToMesh(GunMesh);
+	
+	//Crosshair Init
+	CrosshairMesh = CVmNewMesh("sceneData\\Crosshair.aam");
+	CrosshairObj = CVmObj();
+	CrosshairObj.LinkToMesh(CrosshairMesh);
+	
+	/* Tracer Init
+	TracerMesh = CVmNewMesh("sceneData\\Chicken.aam");
+	TracerObj = CVmObj();
+	TracerObj.LinkToMesh(TracerMesh); */
+
+    targetList = Array(0);
+    //this should be called repeatedly to add cans to the target list
+    aadd(targetList,CanObj1);
+    aadd(targetList,CanObj2);
+    aadd(targetList,CanObj3);
+    aadd(targetList,CanObj4);
+    aadd(targetList,CanObj5);
+    aadd(targetList,CanObj6);
+    aadd(targetList,CanObj7);
+    aadd(targetList,CanObj8);
+    
+    visableCanID = (rand() % 8);
+   
+}
+
+
+
+
+
+function OnFrame(){
+	//outputln(CameraGetPosition());
+	SetClearColor(0,0,0);
+
+	SceneBegin();
+
+	//DrawGrid([0.5, 0.5, 0.5], 100);
+
+	// scene render
+	SceneObj.Draw();
+	
+	// draw cans
+	targetList[visableCanID].draw();
+	
+	// draw rifle
+	//CrosshairObj.Draw();
+	GunObj.Draw();
+	
+	/*if(bulletTraceTimerCounter < bulletTraceTimerMax)
+	{
+    	outputln("tracer!");
+        //need some kind of tracer?
+        //tracerObj.draw;		
+        bulletTraceTimerCounter++;
+	}*/
+	
+	SceneEnd();
+}
+
+
+function OnTimer()
+{
+	// TODO:
+	//GunOri = CameraGetDirection();
+	//outputln(GunOri);
+	// will tend to jump up large amounts if held
+	if (keyPressed("t")){
+	shotCounter++;
+	hitCounter++;
+	}	
+	updateGunPos();
+	CameraMoveMouse();
+	triggerCheck();
+	audioWAV1.play(1);
+	Announce();
+	if (getTime()>repSound)
+		EventSend(playSound);
+		
+}
+
+function onEvent(event)
+{
+	if(event==playSound && cave>1)
+	{
+		repSound+= 3000;
+        ChickenSound.play();
+        CowSound.play();
+	}
+}
+
+function updateGunPos()
+{
+	if (cave>=1)
+	{		
+		GunPos = GetTrackerPos(1);
+		GunOri = GetTrackerRot(1);
+		
+		//offset so gun model trigger matches physical trigger
+		GunPos[2]-=0.15;
+		
+		GunObj.setPosition(GunPos);
+		
+	
+			GunObj.SetRotation(GunOri.y,[0,1,0]);
+/*
+			if(updateRotation){
+			GunObj.SetRotation(GunOri.y,[0,1,0]);
+			updateRotation = false;
+			}
+			else{
+			GunObj.SetRotation(GunOri.x,[1,0,0]);
+			updateRotation = true;
+			}
+*/			
+			
+			
+			/*
+			GunObj.RotateABS(-oldRotate1,[0,1,0]);
+			GunObj.RotateABS(-oldRotate2,[1,0,0]);
+
+			GunObj.RotateABS(GunOri.y,[0,1,0]);
+			GunObj.RotateABS(GunOri.x,[1,0,0]);
+			oldRotate1 = GunOri.y;
+			oldRotate2 = GunOri.x;
+			*/
+			
+			
+			
+			
+			
+			
+			
+			var posVector = GetTrackerPos(1);
+		
+		//outputln(CrosshairDir);
+		/*
+		
+    	var aimVector = [-cos(GetTrackerRot(1).y), sin(GetTrackerRot(1).y),sin(GetTrackerRot(1).x) ];
+  		  */
+  		  
+   		var aimVector = [0,0,-1];
+	    aimVector = VectorRotate(GetTrackerRot(1).y,[0,1,0],aimVector);
+ 		   
+		CrosshairObj.setPosition(posVector+aimVector*10);
+	}
+	else
+	{
+		GunPos = CameraGetPosition();
+		GunOri = CameraGetDirection();
+		
+		outputln("\nGunOri: " + str(GunOri));
+		
+		Var Angle=0;
+		var GunOriMag = sqrt((GunOri[0]*GunOri[0])+(GunOri[1]*GunOri[1])+(GunOri[2]*GunOri[2]));
+		var DefDirMag = sqrt((DefaultDir[0]*DefaultDir[0])+(DefaultDir[1]*DefaultDir[1])+(DefaultDir[2]*DefaultDir[2]));
+		GunOri = GunOri/GunOriMag;
+		DefaultDir = DefaultDir/DefDirMag;
+		var CrossProd = [DefaultDir[1]*GunOri[2]-GunOri[1]*DefaultDir[2],DefaultDir[2]*GunOri[0]-GunOri[2]*DefaultDir[0],DefaultDir[0]*GunOri[1]-GunOri[0]*DefaultDir[1]];//DefaultDir ^ GunOri;
+		var DotProd = GunOri[0]*DefaultDir[0] + GunOri[1]*DefaultDir[1] + GunOri[2]*DefaultDir[2];
+		if (DotProd>=1)
+			Angle=0;
+		else{
+		Angle = acos(DotProd);
+
+		//outputln("\nDotProduct: " + str(DotProd));
+		Angle = (Angle * 180.0) / 3.1459265;
+		Angle = Angle%360;
+		}
+		
+			
+		GunPos[2]-=2.0;
+		GunPos[1]-=0.5;
+		//GunPos[0]+=0.5;
+		//GunObj.setPivotPoint(GunPos+GunOri);
+		GunObj.RotateABS(Angle, CrossProd);
+		GunObj.setPosition(GunPos);
+		DefaultDir=GunOri;
+			
+		//outputln("\nAngle: " + str(Angle));
+		//outputln("\nCrossProd: " + str(CrossProd));
+		//outputln("\nDefaultDir: " + str(DefaultDir));				
+		CrosshairPos = CameraGetPosition();
+		CrosshairDir = CameraGetDirection();
+		CrosshairObj.setPosition(CrosshairPos+CrosshairDir*10);		
+	}
+}
+
+function triggerCheck(){
+// The trigger needs to be the correct joystick button
+	var trigger = keyPressed("g") || getTrackerButtons(1) == 32;
+    if (!trigger){
+    	barrelLoaded = true;
+	}
+    if (trigger && barrelLoaded){
+    	shoot();
+        barrelLoaded = false;
+	}
+}
+
+function shoot()
+{
+	output_text = "Shot registered! ";
+	GunSound.setVolume(1.0);
+    
+    shotCounter++;
+
+    //we set the range of the shot (length of shooting vector
+    //usually the vector is of unit length - so we need to extend it
+    var range = 250;
+
+    //we are using the camera as the gun - need to get handtracker pos and direction
+    var posVector;
+    var aimVector;
+    if(cave>=1){
+    
+    posVector = GetTrackerPos(1);
+    //aimVector = [-cos(GetTrackerRot(1).y), sin(GetTrackerRot(1).y),sin(GetTrackerRot(1).x) ];
+    
+    aimVector = [0,0,-1];
+    aimVector = VectorRotate(GetTrackerRot(1).y,[0,1,0],aimVector);
+    outputln(str(aimVector));
+    
+    }
+    else{
+    posVector = CameraGetPosition();
+    aimVector = CameraGetDirection();
+    }
+	
+
+    //show the bullet trace
+    bulletTraceTimerCounter = 0;
+    //TracerObj.setPosition(posVector+aimVector*300);
+       
+    //iterate through list of targets and test if the vector collides
+    for(var i = 0; i < len(targetList); i++){
+		var target = targetList[i];
+        if(target.isColliding(posVector,posVector+aimVector*range)){
+            // Lower volume of gun so we can hear the hit...
+            GunSound.SetVolume(0.7);
+            CanHit.play();
+            hitCounter++;
+            output_text = output_text + "\nHit object number " + str(i+1) + "\n";
+            outputln(output_text);
+            randVisableCanID = (rand() % 8);
+            while(randVisableCanID==visableCanID)
+            	randVisableCanID = (rand() % 8);
+            visableCanID = randVisableCanID;
+		}
+	}
+	//Makes sure the BANG is heard...
+	if(GunSound.isPlaying())
+		GunSound.stop();
+	GunSound.play();
+    var accuracy = (hitCounter*100)/shotCounter;
+    output_text = output_text + "Total hits = " + str(hitCounter) + ", accuracy = " + str(accuracy) + "%";
+    outputln(output_text);
+}
+
+
+
+// Camera manager (using mouse)
+function CameraMoveMouse()
+{
+	static var InMouseR = false, InMouseL = false;				
+	static var PrecX = 0, PrecY = 0;			
+	// Change these values to modify the mouse sensitivity
+	var TR_SENSITIVITY  = 0.001 ;//* SceneScale;
+	var ROT_SENSITIVITY = 0.001;
+	// Mouse manager
+	if(Mouse.ButtonL && !Mouse.ButtonR)
+	{
+		//====  Left Button: Camera rotation  ====//
+		if (InMouseL)
+		{			
+			CameraRotate(( Mouse.X-PrecX)*ROT_SENSITIVITY,0,1,0);
+			CameraRotateABS((Mouse.Y-PrecY)*ROT_SENSITIVITY,1,0,0);		
+		}
+		else
+		{
+			PrecX = Mouse.X;
+			PrecY = Mouse.Y;
+		}
+		InMouseL = true;
+		InMouseR = false;
+	}
+	else
+	if(Mouse.ButtonR)
+	{
+	
+		//====  Right Button: Camera translation  ====//
+		if (InMouseR)
+		{
+			var CameraMatrix = CameraGetMatrix();
+			var CameraPos = CameraGetPosition();
+			if (!Mouse.ButtonL) 
+			//====  Translation on X and Z axis ====//
+				CameraPos += CameraGetZAxis() * (Mouse.y-PrecY)*TR_SENSITIVITY + CameraGetXAxis() * (Mouse.X- PrecX)*TR_SENSITIVITY;
+			else
+			//====  Right + Left Button: Translation on Y axis ====//
+				CameraPos -= CameraGetYAxis() * (Mouse.y-PrecY)*TR_SENSITIVITY;
+
+			CameraSetPosition(CameraPos);		
+		}
+		else
+		{
+			PrecX = Mouse.X;
+			PrecY = Mouse.Y;
+		}
+		InMouseR = true;
+		InMouseL = false;
+	}	
+	else
+	{
+		InMouseR = false;
+		InMouseL = false;
+	}
+}
+
+function Announce(){
+	if(!Intro.isPlaying()
+	&& !Shoot2nd.isPlaying()
+	&& !Shoot3rd.isPlaying()
+	&& !ChallengeStart.isPlaying()
+	&& !ChallengeOver.isPlaying()
+	&& !LowHits.isPlaying()
+	&& !MedHits.isPlaying()
+	&& !HighHits.isPlaying()
+	&& !Accuracy.isPlaying()
+	&& !Poor.isPlaying()
+	&& !Good.isPlaying()
+	&& !Excellent.isPlaying()
+	&& !FinalScoreIntro.isPlaying()
+	&& !sixOutOf10.isPlaying()
+	&& !sevenOutOf10.isPlaying()
+	&& !eightOutOf10.isPlaying()
+	&& !nineOutOf10.isPlaying()
+	&& !tenOutOf10.isPlaying()
+	&& !Goodbye.isPlaying()
+	&& !banjo.isPlaying()){
+		switch(stageID){
+			case 1:
+				outputln("Starting stage " + str(stageID)+ "...");
+				ResetHitShotCounters();			
+				Intro.play();
+				stageID++;
+				break;
+			case 2:	
+				if(hitCounter>0){
+					outputln("Starting stage " + str(stageID)+ "...");
+					ResetHitShotCounters();
+					Shoot2nd.play();
+					stageID++;
+					}
+				break;
+			case 3:
+				if(hitCounter>0){
+					outputln("Starting stage " + str(stageID)+ "...");
+					ResetHitShotCounters();
+					Shoot3rd.play();
+					stageID++;
+				}
+				break;
+			case 4:
+				if(hitCounter>0){
+					outputln("Starting stage " + str(stageID)+ "...");
+					ResetHitShotCounters();
+					ChallengeStart.play();
+					stageID++;
+				}
+				break;
+			case 5:
+				outputln("Starting stage " + str(stageID)+ "...");
+				banjo.play();
+				resetHitShotCounters();
+				stageID++;	
+				break;
+			case 6:
+				outputln("Starting stage " + str(stageID)+ "...");
+				finalHitCount = hitCounter;
+				finalShotCount = shotCounter;
+				ChallengeOver.play();
+				stageID++;
+				break;
+			case 7:
+				outputln("Starting stage " + str(stageID)+ "...");
+				if(finalHitCount < 10)
+					LowHits.play();
+				else if(finalHitCount < 20)
+					MedHits.play();
+				else
+					HighHits.play();
+				stageID++;
+				break;
+			case 8:
+				outputln("Starting stage " + str(stageID)+ "...");
+				Accuracy.play();
+				finalAccuracy = (100*finalHitCount)/finalShotCount;
+				stageID++;
+				break;
+			case 9:
+				outputln("Starting stage " + str(stageID)+ "...");
+				if(finalAccuracy < 30)
+					Poor.play();
+				else if(finalAccuracy < 60)
+					Good.play();
+				else
+					Excellent.play();
+				stageID++;	
+				break;
+			case 10:
+				outputln("Starting stage " + str(stageID)+ "...");
+				FinalScoreIntro.play();
+				stageID++;
+ 				break;
+			case 11:
+				outputln("Starting stage " + str(stageID)+ "...");
+				if(finalAccuracy < 30 || finalHitcount < 10)
+					sixOutOf10.play();
+				else if(finalAccuracy < 45 || finalHitcount < 15)
+					sevenOutOf10.play();
+				else if(finalAccuracy < 60 || finalHitcount < 20)
+					eightOutOf10.play();
+				else if(finalAccuracy < 75 || finalHitcount < 25)
+					nineOutOf10.play();
+				else
+					tenOutOf10.play();
+				stageID++;
+				break;
+			case 12:
+				outputln("Starting stage " + str(stageID)+ "...");
+				Goodbye.play();
+				stageID = 0;
+				break;
+		}
+	}
+}
+
+function ResetHitShotCounters(){
+	hitCounter = 0;
+	shotCounter = 0;
+	outputln("counters reset");
+}
+
+
+function OnExit(){
+	// TODO: put your cleanup code here
+}
+
+
+function onError(){
+}
